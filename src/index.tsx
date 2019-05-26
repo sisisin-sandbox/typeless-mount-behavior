@@ -1,12 +1,48 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+import { TypelessContext, Registry } from 'typeless';
+import { createModule, useActions } from 'typeless';
+import * as Rx from 'typeless/rx';
 
-ReactDOM.render(<App />, document.getElementById('root'));
+const registry = new Registry();
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+const [handle, FooActions] = createModule(Symbol('Foo')).withActions({
+  $mounted: null,
+  $unmounting: null,
+  showFoo: null,
+});
+
+handle.epic().on(FooActions.showFoo, () => {
+  console.log('bar');
+  return Rx.empty();
+});
+
+const A = () => {
+  handle();
+  return <div>this is A</div>;
+};
+const B = () => {
+  handle();
+  return <div>B!!!!</div>;
+};
+const App: React.FC = () => {
+  const [bool, toggleState] = React.useState(true);
+  const { showFoo } = useActions(FooActions);
+
+  return (
+    <div>
+      <div>{bool ? <A /> : <B />}</div>
+      <div>
+        <button onClick={() => toggleState(!bool)}>toggle state</button>
+        <button onClick={showFoo}>show foo</button>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.render(
+  <TypelessContext.Provider value={{ registry }}>
+    <App />
+  </TypelessContext.Provider>,
+  document.getElementById('root'),
+);
